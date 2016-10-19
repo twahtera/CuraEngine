@@ -116,6 +116,9 @@ bool FffPolygonGenerator::sliceModel(MeshGroup* meshgroup, TimeKeeper& timeKeepe
     Progress::messageProgressStage(Progress::Stage::PARTS, &timeKeeper);
 
     carveMultipleVolumes(slicerList);
+
+    AreaSupport::handleSupportMeshes(storage, slicerList);
+
     generateMultipleVolumesOverlap(slicerList);
 
     size_t max_layer_count = 0;

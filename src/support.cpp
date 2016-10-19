@@ -11,8 +11,28 @@
 
 namespace cura 
 {
-    
-    
+
+void AreaSupport::handleSupportMeshes(SliceDataStorage& storage, std::vector<Slicer*>& volumes)
+{
+    assert(volumes.size() == storage.meshes.size() && "There should be the same amount of meshes as sliced meshes!");
+    for (unsigned int mesh_idx = 0; mesh_idx < volumes.size(); mesh_idx++)
+    {
+        SliceMeshStorage& mesh = storage.meshes[mesh_idx];
+        if (!mesh.getSettingBoolean("support_mesh"))
+        {
+            continue;
+        }
+
+        Slicer& slicer = *volumes[mesh_idx];
+        for (unsigned int layer_nr = 0; layer_nr < slicer.layers.size(); layer_nr++)
+        {
+            SlicerLayer& slicer_layer = slicer.layers[layer_nr];
+            SupportLayer& support_layer = storage.support.supportLayers[layer_nr];
+//             support_layer.
+        }
+    }
+}
+
 Polygons AreaSupport::join(Polygons& supportLayer_up, Polygons& supportLayer_this, int64_t supportJoinDistance, int64_t smoothing_distance, int max_smoothing_angle, bool conical_support, int64_t conical_support_offset, int64_t conical_smallest_breadth)
 {
     Polygons joined;
