@@ -224,7 +224,9 @@ INLINE int angle(const Point& p)
 
 }//namespace cura
     
-namespace std {
+namespace std
+{
+
 template <>
 struct hash<cura::Point> {
     size_t operator()(const cura::Point & pp) const
@@ -236,7 +238,21 @@ struct hash<cura::Point> {
         return result; 
     }
 };
-}
+
+template <>
+struct hash<cura::Point3> {
+    size_t operator()(const cura::Point3& pp) const
+    {
+        static int prime = 31;
+        int result = 89;
+        result = result * prime + pp.x;
+        result = result * prime + pp.y;
+        result = result * prime + pp.z;
+        return result;
+    }
+};
+
+} // namespace std
 
 namespace cura
 {

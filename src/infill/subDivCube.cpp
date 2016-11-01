@@ -18,6 +18,8 @@ int32_t SubDivCube::radius_addition = 0;
 Point3Matrix SubDivCube::rotation_matrix;
 PointMatrix SubDivCube::infill_rotation_matrix;
 
+SparseGrid3D<PolygonsPointIndex>* SubDivCube::sparse_grid(nullptr);
+
 SubDivCube::~SubDivCube()
 {
     for (int child_idx = 0; child_idx < 8; child_idx++)
@@ -27,15 +29,21 @@ SubDivCube::~SubDivCube()
             delete children[child_idx];
         }
     }
+    if (sparse_grid)
+    {
+        delete sparse_grid;
+    }
 }
 
 void SubDivCube::precomputeOctree(SliceMeshStorage& mesh)
 {
     radius_multiplier = mesh.getSettingAsRatio("sub_div_rad_mult");
     radius_addition = mesh.getSettingInMicrons("sub_div_rad_add");
+
+    coord_t infill_line_distance = mesh.getSettingInMicrons("infill_line_distance");
     double infill_angle = M_PI / 4.0;
     int curr_recursion_depth = 0;
-    for (int64_t curr_side_length = mesh.getSettingInMicrons("infill_line_distance") * 2; curr_side_length < 25600000; curr_side_length *= 2) //!< 25600000 is an arbitrarily large number. It is imperative that any infill areas are inside of the cube defined by this number.
+    for (int64_t curr_side_length = infill_line_distance * 2; curr_side_length < 25600000; curr_side_length *= 2) //!< 25600000 is an arbitrarily large number. It is imperative that any infill areas are inside of the cube defined by this number.
     {
         side_length.push_back(curr_side_length);
         height.push_back(sqrt(3) * curr_side_length);
@@ -69,6 +77,32 @@ void SubDivCube::precomputeOctree(SliceMeshStorage& mesh)
     Point3Matrix infill_angle_mat(infill_rotation_matrix);
 
     rotation_matrix = infill_angle_mat.compose(tilt);
+
+
+    sparse_grid = new SparseGrid3D<PolygonsPointIndex>(infill_line_distance * 2, 100000);
+    for (unsigned int layer_idx = 0; layer_idx < mesh.layers.size(); layer_idx++)
+    {
+        SliceLayer& layer = mesh.layers[layer_idx];
+        coord_t z = layer_idx * layer_idx;
+        for (SliceLayerPart& part : layer.parts)
+        {
+            Polygons& infill = part.infill_area;
+            for (unsigned int poly_idx = 0; poly_idx < infill.size(); poly_idx++)
+            {
+                PolygonRef poly = infill[poly_idx];
+                Point3 p0_3d = rotation_matrix.apply(Point3(poly.back().X, poly.back().Y, z));
+                unsigned int p0_idx = poly.size() - 1;
+                for (unsigned int p1_idx = 0; p1_idx < poly.size(); p1_idx++)
+                {
+                    Point p1 = poly[p1_idx];
+                    Point3 p1_3d = rotation_matrix.apply(Point3(p1.X, p1.Y, z));
+                    sparse_grid->insert(std::make_pair(p0_3d, p1_3d), PolygonsPointIndex(&infill, poly_idx, p0_idx));
+                    p0_3d = p1_3d;
+                    p0_idx = p1_idx;
+                }
+            }
+        }
+    }
 
     mesh.base_subdiv_cube = new SubDivCube(mesh, center, curr_recursion_depth - 1);
 }
