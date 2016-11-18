@@ -259,9 +259,13 @@ void SGI_THIS::processLine(const std::pair<Point3, Point3> line, std::function<b
             return (in > 0)? 1 : (in < 0)? -1 : 0;
         };
 
-    auto sign0 = [](int in)
+    auto initial_step_dir = [](int pos, int dir)
         {
-            return (in > 0)? 1 : 0;
+            if ((pos > 0) == (dir < 0) && pos != 0)
+            {
+                return 0;
+            }
+            return (dir > 0)? 1 : (dir < 0)? -1 : 0;
         };
 
     bool continue_ = process_func(start);
@@ -277,56 +281,65 @@ void SGI_THIS::processLine(const std::pair<Point3, Point3> line, std::function<b
     int y_dir = sign(diff.y);
     int z_dir = sign(diff.z);
     Point3 last_cell_crossing = line.first;
+    std::cerr << "start\n";
+    int count = 0;
     for (GridPoint now = start; now != end;)
     {
-        float best_progress;
-        int best_axis = -1;
+//         std::cerr << now << '\n';
+        std::cerr << last_cell_crossing << '\n';
+        float best_progress = std::numeric_limits<float>::max();
+        GridPoint dir(0,0,0);
         if (x_dir)
         {
-            coord_t next_x_coord = toLowerCoord(now.x + sign0(diff.x));
-            if (next_x_coord == last_cell_crossing.x)
-            {
-                next_x_coord = toLowerCoord(now.x + sign(diff.x));
-            }
-            float next_x_progress = (next_x_coord - line.first.x) / (line.second.x - line.first.x);
+            int step = (last_cell_crossing == line.first)? initial_step_dir(now.x, diff.x) : sign(diff.x);
+            coord_t next_x_coord = toLowerCoord(now.x + step);
+            float next_x_progress = float(next_x_coord - line.first.x) / float(line.second.x - line.first.x);
+            assert(next_x_progress > 0);
             best_progress = next_x_progress;
-            best_axis = 0;
+            dir = GridPoint(x_dir, 0, 0);
         }
         if (y_dir)
         {
-            coord_t next_y_coord = toLowerCoord(now.y + sign0(diff.y));
-            if (next_y_coord == last_cell_crossing.y)
+            int step = (last_cell_crossing == line.first)? initial_step_dir(now.y, diff.y) : sign(diff.y);
+            coord_t next_y_coord = toLowerCoord(now.y + step);
+            float next_y_progress = float(next_y_coord - line.first.y) / float(line.second.y - line.first.y);
+            if (next_y_progress < best_progress)
             {
-                next_y_coord = toLowerCoord(now.y + sign(diff.y));
-            }
-            float next_y_progress = (next_y_coord - line.first.y) / (line.second.y - line.first.y);
-            if (next_y_progress < best_progress || best_axis == -1)
-            {
+                assert(next_y_progress > 0);
                 best_progress = next_y_progress;
-                best_axis = 1;
+                dir = GridPoint(0, y_dir, 0);
             }
         }
         if (z_dir)
         {
-            coord_t next_z_coord = toLowerCoord(now.z + sign0(diff.z));
-            if (next_z_coord == last_cell_crossing.z)
+            int step = (last_cell_crossing == line.first)? initial_step_dir(now.z, diff.z) : sign(diff.z);
+            coord_t next_z_coord = toLowerCoord(now.z + step);
+            float next_z_progress = float(next_z_coord - line.first.z) / float(line.second.z - line.first.z);
+            if (next_z_progress < best_progress)
             {
-                next_z_coord = toLowerCoord(now.z + sign(diff.z));
-            }
-            float next_z_progress = (next_z_coord - line.first.z) / (line.second.z - line.first.z);
-            if (next_z_progress < best_progress || best_axis == -1)
-            {
+                assert(next_z_progress > 0);
                 best_progress = next_z_progress;
-                best_axis = 2;
+                dir = GridPoint(0, 0, z_dir);
             }
         }
-        Point3 next_x_crossing = line.first + diff * best_progress;
-        GridPoint next = toGridPoint(next_x_crossing);
-        assert(next != now && (next - now).vSize2() == 1 && "We must take step of size one!");
+        assert(best_progress < std::numeric_limits<float>::max());
+        Point3 next_cell_crossing = line.first + diff * best_progress;
+        GridPoint next = now + dir;
+        assert(next != now && "We must take step of size one!");
+        assert((next - now).vSize2() == 1 && "We must take step of size one!");
         bool continue_ = process_func(now);
         if (!continue_)
         {
             return;
+        }
+        assert(now == end || best_progress < 1.0);
+
+        last_cell_crossing = next_cell_crossing;
+        now = next;
+        count++;
+        if (count > 1000)
+        {
+            std::cerr << "s\n";
         }
     }
 }

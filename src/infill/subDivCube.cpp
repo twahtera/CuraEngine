@@ -79,7 +79,11 @@ void SubDivCube::precomputeOctree(SliceMeshStorage& mesh)
     rotation_matrix = infill_angle_mat.compose(tilt);
 
 
-    sparse_grid = new SparseGrid3D<PolygonsPointIndex>(infill_line_distance * 2, 100000);
+    if (sparse_grid)
+    {
+        delete sparse_grid;
+    }
+    sparse_grid = new SparseGrid3D<PolygonsPointIndex>(infill_line_distance, 100000);
     for (unsigned int layer_idx = 0; layer_idx < mesh.layers.size(); layer_idx++)
     {
         SliceLayer& layer = mesh.layers[layer_idx];
@@ -247,6 +251,20 @@ bool SubDivCube::isValidSubdivision(SliceMeshStorage& mesh, Point3& center, int6
     int inside;
     double part_dist;//what percentage of the radius the target layer is away from the center along the z axis. 0 - 1
     const long int layer_height = mesh.getSettingInMicrons("layer_height");
+
+    bool is_near_border = false;
+    std::function<bool (const PolygonsPointIndex& elem)> process_func = [&is_near_border](const PolygonsPointIndex& elem)
+        {
+            is_near_border = true;
+            return false;
+        };
+    sparse_grid->processNearby(rotation_matrix.apply(center), radius, process_func);
+    if (is_near_border)
+    {
+        return true;
+    }
+    
+    
     long int bottom_layer = (center.z - radius) / layer_height;
     long int top_layer = (center.z + radius) / layer_height;
     for (long int test_layer = bottom_layer; test_layer <= top_layer; test_layer += 3) // steps of three. Low-hanging speed gain.
