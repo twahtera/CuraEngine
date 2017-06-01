@@ -152,16 +152,6 @@ Point LinearAlg2D::variableCornerOffsetVector(const Point a, const Point b, cons
     Point bc = c - b;
     assert(bc != Point(0, 0));
 
-    if (offset_ab == 0)
-    {
-        return Point(normal(ba, offset_bc));
-    }
-
-    if (offset_bc == 0)
-    {
-        return Point(normal(bc, -offset_ab));
-    }
-
     coord_t determinant = ba.Y * bc.X - ba.X * bc.Y;
     if (determinant > -10 && determinant < 10)
     { // segments are collinear
