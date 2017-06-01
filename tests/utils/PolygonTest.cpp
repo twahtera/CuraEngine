@@ -3,6 +3,8 @@
 
 #include "PolygonTest.h"
 
+#include "../src/utils/SVG.h" // TODO temp
+
 namespace cura
 {
     CPPUNIT_TEST_SUITE_REGISTRATION(PolygonTest);
@@ -26,6 +28,18 @@ void PolygonTest::setUp()
     pointy_square.emplace_back(45, 100);
     pointy_square.emplace_back(0, 100);
 
+    pointy_square2.emplace_back(0, 0);
+    pointy_square2.emplace_back(400, 0);
+    pointy_square2.emplace_back(470, 800);
+    pointy_square2.emplace_back(530, 800);
+    pointy_square2.emplace_back(600, 0);
+    pointy_square2.emplace_back(1000, 0);
+    pointy_square2.emplace_back(1000, 1000);
+    pointy_square2.emplace_back(550, 1000);
+    pointy_square2.emplace_back(500, 1800);
+    pointy_square2.emplace_back(450, 1000);
+    pointy_square2.emplace_back(0, 1000);
+
     triangle.emplace_back(100, 0);
     triangle.emplace_back(300, 0);
     triangle.emplace_back(200, 100);
@@ -35,6 +49,32 @@ void PolygonTest::setUp()
     clipper_bug.emplace_back(107158, 120960);
     clipper_bug.emplace_back(106760, 120839);
     clipper_bug.emplace_back(106570, 120831);
+
+    PolygonRef outline = complex.newPoly();
+    outline.emplace_back(0, 0);
+    outline.emplace_back(400, 0);
+    outline.emplace_back(470, 300);
+    outline.emplace_back(530, 300);
+    outline.emplace_back(600, 0);
+    outline.emplace_back(1000, 0);
+    outline.emplace_back(1000, 1000);
+    outline.emplace_back(1300, 1050);
+    outline.emplace_back(1300, 1150);
+    outline.emplace_back(1000, 1200);
+    outline.emplace_back(1000, 1500);
+    outline.emplace_back(550, 1500);
+    outline.emplace_back(500, 1800);
+    outline.emplace_back(450, 1500);
+    outline.emplace_back(0, 1500);
+    outline.emplace_back(0, 1200);
+    outline.emplace_back(300, 1100);
+    outline.emplace_back(0, 1000);
+    PolygonRef hole = complex.newPoly();
+    hole.emplace_back(305, 500);
+    hole.emplace_back(300, 905);
+    hole.emplace_back(705, 900);
+    hole.emplace_back(700, 500);
+    
 }
 
 void PolygonTest::tearDown()
@@ -63,6 +103,27 @@ void PolygonTest::polygonOffsetTest()
 }
 
 void PolygonTest::polygonOffsetBugTest()
+{
+    Polygons ins = complex;
+    Polygons in_between = ins.cornerBasedOffset(-100, 100, -10);
+    in_between.removeSmallAreas(1);
+    Polygons in_between2 = in_between.cornerBasedOffset(-100, 100, -10);
+    Polygons result = in_between2.cornerBasedOffset(-100, 100, -10);
+    {
+        AABB aabb(ins);
+        for (PolygonRef poly : result)
+            for (const Point p : poly)
+                aabb.include(p);
+        SVG svg("poly_test.html", aabb, Point(1024 * 1, 1024 * 1));
+        svg.writePolygons(ins, SVG::Color::BLACK);
+        svg.writePoints(ins, true);
+        svg.writePolygons(result, SVG::Color::BLUE);
+    }
+    std::cerr << "done\n";
+}
+
+
+void PolygonTest::cornerBasedOffsetTest()
 {
     Polygons polys;
     polys.add(clipper_bug);
