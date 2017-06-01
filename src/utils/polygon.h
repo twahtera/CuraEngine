@@ -260,6 +260,18 @@ public:
      */
     void smooth2(int remove_length, PolygonRef result) const;
 
+protected:
+    /*!
+     * Apply offsets depending on whether the edge is part of an inward corner, an outward corner or a zig-zag corner
+     * 
+     * \warning This function doesn't perform clipping, so the resulting polygon might have complex parts
+     * 
+     * \param outward_offset offset applied to edges connected to two outward corners
+     * \param inward_offset offset applied to edges connected to two inward corners
+     * \param zigzag_offset offset applied to edges connected to an outward and an inward corner
+     * \return the variably offsetted polygon
+     */
+    Polygon cornerBasedOffsetComplexParts(const coord_t outward_offset, const coord_t inward_offset, const coord_t zigzag_offset) const;
 
 private:
     /*!
@@ -724,7 +736,17 @@ public:
     Polygons smooth_outward(float angle, int shortcut_length);
 
     Polygons smooth2(int remove_length, int min_area) const; //!< removes points connected to small lines
-    
+
+    /*!
+     * Apply offsets to each edge depending on whether the edge is part of an inward corner, an outward corner or a zig-zag corner
+     * 
+     * \param outward_offset offset applied to edges connected to two outward corners
+     * \param inward_offset offset applied to edges connected to two inward corners
+     * \param zigzag_offset offset applied to edges connected to an outward and an inward corner
+     * \return the variably offsetted polygon
+     */
+    Polygons cornerBasedOffset(const coord_t outward_offset, const coord_t inward_offset, const coord_t zigzag_offset) const;
+
     /*!
      * removes points connected to similarly oriented lines
      * 

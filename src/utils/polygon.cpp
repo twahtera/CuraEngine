@@ -1151,6 +1151,69 @@ Polygons Polygons::smooth2(int remove_length, int min_area) const
     return ret;
 }
 
+Polygon ConstPolygonRef::cornerBasedOffsetComplexParts(const coord_t outward_offset, const coord_t inward_offset, const coord_t zigzag_offset) const
+{
+    Polygon result;
+    ConstPolygonRef thiss = *this;
+
+    enum class CornerType { OUTWARD, INWARD, ZIGZAG };
+    std::vector<CornerType> edge_types(size());
+
+    for (unsigned int a_idx = 0; a_idx < size(); a_idx++)
+    { // record for each edge whether it is connected to outward edges, ineward or both
+        const Point prev = thiss[(a_idx + size() - 1) % size()];
+        const Point a = thiss[a_idx];
+        const Point b = thiss[(a_idx + 1) % size()];
+        const Point next = thiss[(a_idx + 2) % size()];
+        // TODO take care of straight corners!
+        if (LinearAlg2D::pointIsLeftOfLine(a, prev, b) < 0 && LinearAlg2D::pointIsLeftOfLine(b, a, next) < 0)
+        { // outward corner
+            edge_types[a_idx] = CornerType::OUTWARD;
+        }
+        else if (LinearAlg2D::pointIsLeftOfLine(a, prev, b) > 0 && LinearAlg2D::pointIsLeftOfLine(b, a, next) > 0)
+        { // inward corner
+            edge_types[a_idx] = CornerType::INWARD;
+        }
+        else
+        {
+            edge_types[a_idx] = CornerType::ZIGZAG;
+        }
+    }
+
+    for (unsigned int a_idx = 0; a_idx < size(); a_idx++)
+    { // apply offset to each corner based on both adjacent edges
+        unsigned int prev_idx = (a_idx + size() - 1) % size();
+        // unsigned int a_idx
+        unsigned int next_idx = (a_idx + 1) % size();
+        const Point prev = thiss[prev_idx];
+        const Point a = thiss[a_idx];
+        const Point next = thiss[next_idx];
+
+        CornerType prev_edge_type = edge_types[prev_idx];
+        CornerType next_edge_type = edge_types[a_idx];
+
+        coord_t prev_edge_offset = (prev_edge_type == CornerType::OUTWARD)? outward_offset : ((prev_edge_type == CornerType::INWARD)? inward_offset : zigzag_offset);
+        coord_t next_edge_offset = (next_edge_type == CornerType::OUTWARD)? outward_offset : ((next_edge_type == CornerType::INWARD)? inward_offset : zigzag_offset);
+
+        Point offset = LinearAlg2D::variableCornerOffsetVector(prev, a, next, prev_edge_offset, next_edge_offset);
+
+        result.add(a - offset);
+    }
+
+    return result;
+}
+
+
+Polygons Polygons::cornerBasedOffset(const coord_t outward_offset, const coord_t inward_offset, const coord_t zigzag_offset) const
+{
+    Polygons offsetted_complex;
+    for (ConstPolygonRef poly : *this)
+    {
+        offsetted_complex.add(poly.cornerBasedOffsetComplexParts(outward_offset, inward_offset, zigzag_offset));
+    }
+    return offsetted_complex.removeComplexParts();
+}
+
 double PolygonsPart::area() const
 {
     double area = 0;
