@@ -113,6 +113,15 @@ protected:
     void generateInfill(SliceLayerPart& part, const Polygons& skin);
 
     /*!
+     * Calculate the areas which are directly under air,
+     * remove them from the \p skin and save them in the \p part
+     * 
+     * \param[in,out] part Where to get the outline info and where to store the topmost skin areas
+     * \param[in,out] skin The normal skin areas, which are reduced by this function
+     */
+    void calculateTopMostSkin(SliceLayerPart& part, Polygons& skin);
+
+    /*!
      * Generate the skin insets.
      * 
      * \param part The part where the skin outline information (input) is stored and
@@ -149,6 +158,14 @@ private:
      * \param layer2 The layer from which to gather the innermost walls
      */
     Polygons getInsidePolygons(const SliceLayerPart& part_here, const SliceLayer& layer2);
+
+    /*!
+     * Helper function to get the outlines of each part which might intersect with \p part_here
+     * 
+     * \param part_here The part for which to check
+     * \param layer2_nr The layer index from which to gather the outlines
+     */
+    Polygons getOutlines(const SliceLayerPart& part_here, int layer2_nr);
 };
 
 }//namespace cura

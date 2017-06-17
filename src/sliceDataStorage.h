@@ -45,6 +45,7 @@ public:
     std::vector<Polygons> insets;         //!< The insets are generated with. The insets are also known as perimeters or the walls.
     Polygons perimeter_gaps; //!< The gaps betwee nconsecutive walls and between the inner wall and outer skin inset
     std::vector<SkinPart> skin_parts;     //!< The skin parts which are filled for 100% with lines and/or insets.
+    std::vector<SkinPart> topmost_skin_parts;     //!< The top-most skin parts which are filled for 100% with lines and/or insets. Directly above these parts there's air.
 
     /*!
      * The areas inside of the mesh.
